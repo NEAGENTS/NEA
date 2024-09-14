@@ -89,19 +89,11 @@ class SystemPromptStep(AgentStep):
     system_prompt: str
 
 
-def format_prompt_with_tools(
-    toolbox: Toolbox, prompt_template: str, tool_description_template: str
-) -> str:
+def format_prompt_with_tools(toolbox: Toolbox, prompt_template: str, tool_description_template: str) -> str:
     tool_descriptions = toolbox.show_tool_descriptions(tool_description_template)
-    prompt = prompt_template.replace("{{tool_descriptions}}", tool_descriptions)
+    tool_names = ", ".join(f"'{tool_name}'" for tool_name in toolbox.tools.keys())
 
-    if "{{tool_names}}" in prompt:
-        prompt = prompt.replace(
-            "{{tool_names}}",
-            ", ".join([f"'{tool_name}'" for tool_name in toolbox.tools.keys()]),
-        )
-
-    return prompt
+    return prompt_template.replace("{{tool_descriptions}}", tool_descriptions).replace("{{tool_names}}", tool_names)
 
 
 def show_agents_descriptions(managed_agents: Dict):
