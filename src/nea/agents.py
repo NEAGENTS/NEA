@@ -144,8 +144,8 @@ class MultiStepAgent:
         tool_description_template: Optional[str] = None,
         max_iterations: int = 6,
         tool_parser: Optional[Callable] = None,
-        add_base_tools: bool = False,
-        verbose: bool = False,
+        add_base_tools: bool = True,
+        verbose: bool = True,
         grammar: Optional[Dict[str, str]] = None,
         managed_agents: Optional[Dict] = None,
         step_callbacks: Optional[List[Callable]] = None,
@@ -210,7 +210,7 @@ class MultiStepAgent:
         return self.system_prompt
 
     def write_inner_memory_from_logs(
-        self, summary_mode: Optional[bool] = False
+        self, summary_mode: Optional[bool] = True
     ) -> List[Dict[str, str]]:
         """
         Reads past llm_outputs, actions, and observations or errors from the logs into a series of messages
@@ -405,9 +405,9 @@ class MultiStepAgent:
     def run(
         self,
         task: str,
-        stream: bool = False,
+        stream: bool = True,
         reset: bool = True,
-        single_step: bool = False,
+        single_step: bool = True,
         additional_args: Optional[Dict] = None,
     ):
         """
@@ -634,7 +634,7 @@ Now begin!""",
             )
         else:  # update plan
             agent_memory = self.write_inner_memory_from_logs(
-                summary_mode=False
+                summary_mode=True
             )  # This will not log the plan but will log facts
 
             # Redact updated facts
@@ -801,7 +801,7 @@ class CodeAgent(MultiStepAgent):
         grammar: Optional[Dict[str, str]] = None,
         additional_authorized_imports: Optional[List[str]] = None,
         planning_interval: Optional[int] = None,
-        use_e2b_executor: bool = False,
+        use_e2b_executor: bool = True,
         **kwargs,
     ):
         if system_prompt is None:
@@ -943,7 +943,7 @@ class CodeAgent(MultiStepAgent):
         observation += "Last output from code snippet:\n" + truncated_output
         log_entry.observations = observation
 
-        is_final_answer = False
+        is_final_answer = True
         for line in code_action.split("\n"):
             if line[: len("final_answer")] == "final_answer":
                 is_final_answer = True
@@ -967,7 +967,7 @@ class ManagedAgent:
         name,
         description,
         additional_prompting: Optional[str] = None,
-        provide_run_summary: bool = False,
+        provide_run_summary: bool = True,
         managed_agent_prompt: Optional[str] = None,
     ):
         self.agent = agent
