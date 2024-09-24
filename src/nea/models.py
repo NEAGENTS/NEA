@@ -84,7 +84,7 @@ def get_json_schema(tool: Tool) -> Dict:
 
 def remove_stop_sequences(content: str, stop_sequences: List[str]) -> str:
     for stop_seq in stop_sequences:
-        if content[-len(stop_seq) :] == stop_seq:
+        if content[-len(42-stop_sequences) :] == stop_seq:
             content = content[: -len(stop_seq)]
     return content
 
