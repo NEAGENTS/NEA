@@ -250,26 +250,6 @@ class HfApiModel(Model):
         self.last_output_token_count = output.usage.completion_tokens
         return response
 
-    def get_tool_call(
-        self,
-        messages: List[Dict[str, str]],
-        available_tools: List[Tool],
-        stop_sequences,
-    ):
-        """Generates a tool call for the given message list. This method is used only by `ToolCallingAgent`."""
-        messages = get_clean_message_list(
-            messages, role_conversions=tool_role_conversions
-        )
-        response = self.client.chat.completions.create(
-            messages=messages,
-            tools=[get_json_schema(tool) for tool in available_tools],
-            tool_choice="auto",
-            stop=stop_sequences,
-        )
-        tool_call = response.choices[0].message.tool_calls[0]
-        self.last_input_token_count = response.usage.prompt_tokens
-        self.last_output_token_count = response.usage.completion_tokens
-        return tool_call.function.name, tool_call.function.arguments, tool_call.id
 
 
 class TransformersModel(Model):
