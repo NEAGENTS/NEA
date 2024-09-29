@@ -71,11 +71,56 @@ class AgentText(AgentType, str):
     Text type returned by the agent. Behaves as a string.
     """
 
+    def __init__(self, value: str):
+        if not isinstance(value, str):
+            raise TypeError("AgentText must be initialized with a string.")
+        self._value = value
+
     def to_raw(self):
+        """
+        Returns the raw underlying value.
+        """
         return self._value
 
     def to_string(self):
+        """
+        Returns the string representation of the value.
+        """
         return str(self._value)
+
+    def upper(self):
+        """
+        Returns the text in uppercase.
+        """
+        return AgentText(self._value.upper())
+
+    def lower(self):
+        """
+        Returns the text in lowercase.
+        """
+        return AgentText(self._value.lower())
+
+    def split(self, sep=None):
+        """
+        Splits the text into a list of substrings.
+        """
+        return self._value.split(sep)
+
+    def __repr__(self):
+        """
+        Returns a developer-friendly string representation of the object.
+        """
+        return f"AgentText({repr(self._value)})"
+
+    def __eq__(self, other):
+        """
+        Checks equality with another AgentText or string.
+        """
+        if isinstance(other, AgentText):
+            return self._value == other._value
+        if isinstance(other, str):
+            return self._value == other
+        return NotImplemented
 
 
 class AgentImage(AgentType, ImageType):
