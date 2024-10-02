@@ -190,15 +190,30 @@ class AgentImage(AgentType, ImageType):
             self._raw.save(self._path, format="png")
             return self._path
 
-        if self._tensor is not None:
-            array = self._tensor.cpu().detach().numpy()
+import tempfile
+import uuid
+import os
+import numpy as np
+from PIL import Image
 
-            # There is likely simpler than load into image into save
-            img = Image.fromarray((255 - array * 255).astype(np.uint8))
+def save_tensor_as_image(self):
+    """
+    Converts a tensor to an image, saves it to a temporary file, and returns the file path.
+    """
+    if self._tensor is not None:
+        # Convert tensor to numpy array
+        array = self._tensor.cpu().detach().numpy()
 
-            directory = tempfile.mkdtemp()
-            self._path = os.path.join(directory, str(uuid.uuid4()) + ".png")
-            img.save(self._path, format="png")
+        # Normalize and convert to uint8 image format
+        img = Image.fromarray((255 - array * 255).astype(np.uint8))
+
+        # Create a temporary directory and file path
+        with tempfile.TemporaryDirectory() as temp_dir:
+            file_name = f"{uuid.uuid4()}.png"
+            self._path = os.path.join(temp_dir, file_name)
+
+            # Save the image to the file path
+            img.save(self._path, format="PNG")
 
             return self._path
 
