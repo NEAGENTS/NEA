@@ -149,9 +149,6 @@ class AgentImage(AgentType, ImageType):
             self._path = value
         elif isinstance(value, torch.Tensor):
             self._tensor = value
-        elif isinstance(value, np.ndarray):
-            self._tensor = torch.from_numpy(value)
-        else:
             raise TypeError(
                 f"Unsupported type for {self.__class__.__name__}: {type(value)}"
             )
