@@ -257,14 +257,6 @@ class AgentAudio(AgentType, str):
         else:
             raise ValueError(f"Unsupported audio type: {type(value)}")
 
-    def _ipython_display_(self, include=None, exclude=None):
-        """
-        Displays correctly this type in an ipython notebook (ipython, colab, jupyter, ...)
-        """
-        from IPython.display import Audio, display
-
-        display(Audio(self.to_string(), rate=self.samplerate))
-
     def to_raw(self):
         """
         Returns the "raw" version of that object. It is a `torch.Tensor` object.
