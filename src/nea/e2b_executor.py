@@ -106,9 +106,11 @@ with open('/home/state.pkl', 'rb') as f:
     pickle_dict = pickle.load(f)
 locals().update({key: value for key, value in pickle_dict.items()})
 """
-            execution = self.run_code_raise_errors(remote_unloading_code)
-            execution_logs = "\n".join([str(log) for log in execution.logs.stdout])
-            console.print(execution_logs)
+# Run the code and handle execution logs
+execution = self.run_code_raise_errors(remote_unloading_code)
+
+# Join logs in a single step and print them
+console.print("\n".join(map(str, execution.logs.stdout)))
 
         execution = self.run_code_raise_errors(code_action)
         execution_logs = "\n".join([str(log) for log in execution.logs.stdout])
