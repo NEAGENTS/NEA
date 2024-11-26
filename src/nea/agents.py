@@ -273,35 +273,51 @@ class MultiStepAgent:
                     }
                     memory.append(tool_call_message)
 
-                if step_log.tool_call is None and step_log.error is not None:
-                    message_content = (
-                        "Error:\n"
-                        + str(step_log.error)
-                        + "\nNow let's retry: take care not to repeat previous errors! If you have retried several times, try a completely different approach.\n"
-                    )
-                    tool_response_message = {
-                        "role": MessageRole.ASSISTANT,
-                        "content": message_content,
-                    }
-                if step_log.tool_call is not None and (
-                    step_log.error is not None or step_log.observations is not None
-                ):
-                    if step_log.error is not None:
-                        message_content = (
-                            "Error:\n"
-                            + str(step_log.error)
-                            + "\nNow let's retry: take care not to repeat previous errors! If you have retried several times, try a completely different approach.\n"
-                        )
-                    elif step_log.observations is not None:
-                        message_content = f"Observation:\n{step_log.observations}"
-                    tool_response_message = {
-                        "role": MessageRole.TOOL_RESPONSE,
-                        "content": f"Call id: {(step_log.tool_call.id if getattr(step_log.tool_call, 'id') else 'call_0')}\n"
-                        + message_content,
-                    }
-                    memory.append(tool_response_message)
+def process_step_logs(step_logs):
+    memory = []
 
-        return memory
+    for step_log in step_logs:
+        tool_response_message = {}
+        message_content = ""
+
+        # Handle cases with no tool call and an error
+        if step_log.tool_call is None and step_log.error is not None:
+            message_content = (
+                f"Error:\n{str(step_log.error)}\n"
+                "Now let's retry: take care not to repeat previous errors! "
+                "If you have retried several times, try a completely different approach.\n"
+            )
+            tool_response_message = {
+                "role": MessageRole.ASSISTANT,
+                "content": message_content,
+            }
+
+        # Handle cases with a tool call
+        elif step_log.tool_call is not None:
+            call_id = getattr(step_log.tool_call, "id", "call_0")
+            if step_log.error is not None:
+                message_content = (
+                    f"Error:\n{str(step_log.error)}\n"
+                    "Now let's retry: take care not to repeat previous errors! "
+                    "If you have retried several times, try a completely different approach.\n"
+                )
+            elif step_log.observations is not None:
+                message_content = f"Observation:\n{step_log.observations}"
+            else:
+                message_content = "No error or observations were provided for this tool call."
+
+            tool_response_message = {
+                "role": MessageRole.TOOL_RESPONSE,
+                "content": f"Call ID: {call_id}\n{message_content}",
+            }
+
+        # Log the response for debugging or monitoring
+        if tool_response_message:
+            memory.append(tool_response_message)
+            print(f"Logged response: {tool_response_message}")  # Debugging log
+
+    return memory
+
 
     def get_succinct_logs(self):
         return [
