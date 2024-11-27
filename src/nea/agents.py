@@ -781,28 +781,6 @@ class ToolCallingAgent(MultiStepAgent):
                     Text(f"Final answer: {final_answer}", style=f"bold {YELLOW_HEX}")
                 )
 
-            log_entry.action_output = final_answer
-            return final_answer
-        else:
-            if tool_arguments is None:
-                tool_arguments = {}
-            observation = self.execute_tool_call(tool_name, tool_arguments)
-            observation_type = type(observation)
-            if observation_type in [AgentImage, AgentAudio]:
-                if observation_type == AgentImage:
-                    observation_name = "image.png"
-                elif observation_type == AgentAudio:
-                    observation_name = "audio.mp3"
-                # TODO: observation naming could allow for different names of same type
-
-                self.state[observation_name] = observation
-                updated_information = f"Stored '{observation_name}' in memory."
-            else:
-                updated_information = str(observation).strip()
-            console.print(f"Observations: {updated_information}")
-            log_entry.observations = updated_information
-            return None
-
 
 class CodeAgent(MultiStepAgent):
     """
