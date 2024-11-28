@@ -894,20 +894,37 @@ class CodeAgent(MultiStepAgent):
             id=f"call_{len(self.logs)}",
         )
 
-        # Execute
-        console.print(
-            Panel(
-                Syntax(
-                    code_action,
-                    lexer="python",
-                    theme="monokai",
-                    word_wrap=True,
-                    line_numbers=True,
-                ),
-                title="[bold]Executing this code:",
-                title_align="left",
+        def execute_code_action(code_action: str, language: str = "python", theme: str = "monokai"):
+            """
+            Displays a panel with the code to be executed.
+
+            Args:
+                code_action (str): The code to display.
+                language (str): The programming language for syntax highlighting. Default is 'python'.
+                theme (str): The theme for syntax highlighting. Default is 'monokai'.
+            """
+            console = Console()
+
+            # Create a Syntax object for better readability
+            syntax_highlighted_code = Syntax(
+                code_action,
+                lexer=language,
+                theme=theme,
+                word_wrap=True,
+                line_numbers=True,
             )
-        )
+
+            # Create a panel to wrap the syntax-highlighted code
+            code_panel = Panel(
+                syntax_highlighted_code,
+                title="[bold]Executing the following code:",
+                title_align="left",
+                border_style="cyan",
+            )
+
+            # Print the panel to the console
+            console.print(code_panel)
+
         observation = ""
         try:
             output, execution_logs = self.python_executor(
