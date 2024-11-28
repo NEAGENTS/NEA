@@ -90,15 +90,6 @@ class PythonInterpreterTool(Tool):
             self.authorized_imports = list(
                 set(BASE_BUILTIN_MODULES) | set(authorized_imports)
             )
-        self.inputs = {
-            "code": {
-                "type": "string",
-                "description": (
-                    "The code snippet to evaluate. All variables used in this snippet must be defined in this same snippet, "
-                    f"else you will get an error. This code can only import the following python libraries: {authorized_imports}."
-                ),
-            }
-        }
         self.base_python_tools = BASE_PYTHON_TOOLS
         self.python_evaluator = evaluate_python_code
         super().__init__(*args, **kwargs)
