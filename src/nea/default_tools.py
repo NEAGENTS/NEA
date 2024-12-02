@@ -144,15 +144,70 @@ class DuckDuckGoSearchTool(Tool):
     }
     output_type = "any"
 
-    def __init__(self, **kwargs):
-        super().__init__(self, **kwargs)
+from rich.console import Console
+from rich.panel import Panel
+from rich.syntax import Syntax
+import time
+
+def execute_code_action(
+    code_action: str,
+    language: str = "python",
+    theme: str = "monokai",
+    title: str = "Executing Code",
+    show_execution_time: bool = True,
+    log_file: str = None,
+):
+    """
+    Displays a panel with the code to be executed and optionally logs the action.
+    
+    Args:
+        code_action (str): The code to display and execute.
+        language (str): The programming language for syntax highlighting. Default is 'python'.
+        theme (str): The theme for syntax highlighting. Default is 'monokai'.
+        title (str): The title of the panel. Default is 'Executing Code'.
+        show_execution_time (bool): Whether to display execution time. Default is True.
+        log_file (str): Path to a log file to save the displayed code. Default is None.
+    """
+    console = Console()
+    
+    # Highlight the code
+    syntax_highlighted_code = Syntax(
+        code_action,
+        lexer=language,
+        theme=theme,
+        word_wrap=True,
+        line_numbers=True,
+    )
+
+    # Create a panel to wrap the syntax-highlighted code
+    code_panel = Panel(
+        syntax_highlighted_code,
+        title=f"[bold]{title}:",
+        title_align="left",
+        border_style="cyan",
+    )
+
+    # Print the panel to the console
+    console.print(code_panel)
+
+    # Optionally log the code to a file
+    if log_file:
         try:
-            from duckduckgo_search import DDGS
-        except ImportError:
-            raise ImportError(
-                "You must install package `duckduckgo_search` to run this tool: for instance run `pip install duckduckgo-search`."
-            )
-        self.ddgs = DDGS()
+            with open(log_file, "a") as file:
+                file.write(f"{'-'*40}\n{time.ctime()}\n")
+                file.write(code_action + "\n")
+                console.log(f"Code logged to {log_file}")
+        except Exception as e:
+            console.print(f"[red]Failed to log code: {str(e)}")
+
+    # Measure execution time (if enabled)
+    if show_execution_time:
+        start_time = time.time()
+        console.print("\n[bold cyan]Execution started...[/bold cyan]")
+        # Simulate execution (replace with actual execution logic if needed)
+        time.sleep(1)  # Placeholder for actual execution
+        end_time = time.time()
+       
 
     def forward(self, query: str) -> str:
         results = self.ddgs.text(query, max_results=10)
