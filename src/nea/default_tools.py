@@ -256,28 +256,32 @@ class GoogleSearchTool(Tool):
                 f"cdr:1,cd_min:01/01/{filter_year},cd_max:12/31/{filter_year}"
             )
 
-        response = requests.get("https://serpapi.com/search.json", params=params)
+import requests
 
-        if response.status_code == 200:
-            results = response.json()
-        else:
-            raise ValueError(response.json())
+def fetch_results(query, params, filter_year=None):
+    response = requests.get("https://serpapi.com/search.json", params=params)
 
-        if "organic_results" not in results.keys():
-            if filter_year is not None:
-                raise Exception(
-                    f"'organic_results' key not found for query: '{query}' with filtering on year={filter_year}. Use a less restrictive query or do not filter on year."
-                )
-            else:
-                raise Exception(
-                    f"'organic_results' key not found for query: '{query}'. Use a less restrictive query."
-                )
-        if len(results["organic_results"]) == 0:
-            year_filter_message = (
-                f" with filter year={filter_year}" if filter_year is not None else ""
-            )
-            return f"No results found for '{query}'{year_filter_message}. Try with a more general query, or remove the year filter."
+    # Handle response status
+    if response.status_code != 200:
+        raise ValueError(response.json())
 
+    results = response.json()
+
+    # Check for 'organic_results' key
+    if "organic_results" not in results:
+        year_filter_message = f" with filtering on year={filter_year}" if filter_year else ""
+        raise Exception(
+            f"'organic_results' key not found for query: '{query}'{year_filter_message}. "
+            f"Use a less restrictive query or adjust/remove the year filter."
+        )
+
+    # Check for empty 'organic_results'
+    if not results["organic_results"]:
+        year_filter_message = f" with filter year={filter_year}" if filter_year else ""
+        return f"No results found for '{query}'{year_filter_message}. Try with a more general query or remove the year filter."
+
+    return results
+    
         web_snippets = []
         if "organic_results" in results:
             for idx, page in enumerate(results["organic_results"]):
