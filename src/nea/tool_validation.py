@@ -10,9 +10,9 @@ _BUILTIN_NAMES = set(vars(builtins))
 
 class MethodChecker(ast.NodeVisitor):
     """
-    Checks that a method
-    - only uses defined names
-    - contains no local imports (e.g. numpy is ok but local_script is not)
+    Checks that a method:
+    - Only uses defined names.
+    - Contains no local imports (e.g. numpy is ok but local_script is not).
     """
 
     def __init__(self, class_attributes: Set[str], check_imports: bool = True):
@@ -48,7 +48,7 @@ class MethodChecker(ast.NodeVisitor):
         for target in node.targets:
             if isinstance(target, ast.Name):
                 self.assigned_names.add(target.id)
-        self.visit(node.value)
+        self.generic_visit(node)
 
     def visit_With(self, node):
         """Track aliases in 'with' statements (the 'y' in 'with X as y')"""
@@ -69,7 +69,7 @@ class MethodChecker(ast.NodeVisitor):
         if isinstance(node.target, ast.Name):
             self.assigned_names.add(node.target.id)
         if node.value:
-            self.visit(node.value)
+            self.generic_visit(node)
 
     def visit_For(self, node):
         target = node.target
@@ -118,88 +118,82 @@ class MethodChecker(ast.NodeVisitor):
 def validate_tool_attributes(cls, check_imports: bool = True) -> None:
     """
     Validates that a Tool class follows the proper patterns:
-    0. __init__ takes no argument (args chosen at init are not traceable so we cannot rebuild the source code for them, make them class attributes!).
-    1. About the class:
-        - Class attributes should only be strings or dicts
-        - Class attributes cannot be complex attributes
-    2. About all class methods:
-        - Imports must be from packages, not local files
-        - All methods must be self-contained
+    - __init__ should take no arguments (args chosen at init are not traceable).
+    - Class attributes should be simple types (strings, dicts).
+    - Methods should only use defined imports and self-contained logic.
 
-    Raises all errors encountered, if no error returns None.
+    Raises all errors encountered, otherwise returns None.
     """
     errors = []
 
+    # Get the source code of the class and parse it to an AST
     source = textwrap.dedent(inspect.getsource(cls))
-
     tree = ast.parse(source)
 
     if not isinstance(tree.body[0], ast.ClassDef):
         raise ValueError("Source code must define a class")
 
     # Check that __init__ method takes no arguments
-    if not cls.__init__.__qualname__ == "Tool.__init__":
+    if cls.__init__.__qualname__ != "Tool.__init__":
         sig = inspect.signature(cls.__init__)
-        non_self_params = list(
-            [arg_name for arg_name in sig.parameters.keys() if arg_name != "self"]
-        )
-        if len(non_self_params) > 0:
+        non_self_params = [arg_name for arg_name in sig.parameters if arg_name != "self"]
+        if non_self_params:
             errors.append(
-                f"This tool has additional args specified in __init__(self): {non_self_params}. Make sure it does not, all values should be hardcoded!"
+                f"Tool class '__init__' method has unexpected arguments: {non_self_params}. "
+                "Ensure no arguments are specified, as values should be hardcoded."
             )
 
     class_node = tree.body[0]
 
-    class ClassLevelChecker(ast.NodeVisitor):
-        def __init__(self):
-            self.imported_names = set()
-            self.complex_attributes = set()
-            self.class_attributes = set()
-            self.in_method = False
-
-        def visit_FunctionDef(self, node):
-            old_context = self.in_method
-            self.in_method = True
-            self.generic_visit(node)
-            self.in_method = old_context
-
-        def visit_Assign(self, node):
-            if self.in_method:
-                return
-            # Track class attributes
-            for target in node.targets:
-                if isinstance(target, ast.Name):
-                    self.class_attributes.add(target.id)
-
-            # Check if the assignment is more complex than simple literals
-            if not all(
-                isinstance(
-                    val, (ast.Str, ast.Num, ast.Constant, ast.Dict, ast.List, ast.Set)
-                )
-                for val in ast.walk(node.value)
-            ):
-                for target in node.targets:
-                    if isinstance(target, ast.Name):
-                        self.complex_attributes.add(target.id)
-
+    # Check class-level attributes (simplified)
     class_level_checker = ClassLevelChecker()
     class_level_checker.visit(class_node)
 
     if class_level_checker.complex_attributes:
         errors.append(
-            f"Complex attributes should be defined in __init__, not as class attributes: "
+            f"Complex attributes found at the class level (use __init__ instead): "
             f"{', '.join(class_level_checker.complex_attributes)}"
         )
 
-    # Run checks on all methods
+    # Validate methods within the class
     for node in class_node.body:
         if isinstance(node, ast.FunctionDef):
-            method_checker = MethodChecker(
-                class_level_checker.class_attributes, check_imports=check_imports
-            )
+            method_checker = MethodChecker(class_level_checker.class_attributes, check_imports)
             method_checker.visit(node)
-            errors += [f"- {node.name}: {error}" for error in method_checker.errors]
+            errors.extend([f"- {node.name}: {error}" for error in method_checker.errors])
 
     if errors:
         raise ValueError("Tool validation failed:\n" + "\n".join(errors))
-    return
+
+
+class ClassLevelChecker(ast.NodeVisitor):
+    """
+    Checks the class-level structure for attributes and complex assignments.
+    """
+    def __init__(self):
+        self.imported_names = set()
+        self.complex_attributes = set()
+        self.class_attributes = set()
+        self.in_method = False
+
+    def visit_FunctionDef(self, node):
+        old_context = self.in_method
+        self.in_method = True
+        self.generic_visit(node)
+        self.in_method = old_context
+
+    def visit_Assign(self, node):
+        if self.in_method:
+            return
+
+        # Track class attributes
+        for target in node.targets:
+            if isinstance(target, ast.Name):
+                self.class_attributes.add(target.id)
+
+        # Check if assignment is more complex than simple literals
+        if not all(isinstance(val, (ast.Str, ast.Num, ast.Constant, ast.Dict, ast.List, ast.Set))
+                   for val in ast.walk(node.value)):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    self.complex_attributes.add(target.id)
