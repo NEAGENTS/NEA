@@ -197,10 +197,6 @@ def create_function(func_def, state, static_tools, custom_tools):
         for name, value in kwargs.items():
             func_state[name] = value
 
-        # Handle variable arguments
-        if func_def.args.vararg:
-            vararg_name = func_def.args.vararg.arg
-            func_state[vararg_name] = args
 
         if func_def.args.kwarg:
             kwarg_name = func_def.args.kwarg.arg
