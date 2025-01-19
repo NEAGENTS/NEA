@@ -1,5 +1,9 @@
 ---
 
+﻿![Network Evolved Agents](https://pbs.twimg.com/profile_banners/1879980713342017536/1737057516/1500x500) 
+
+[Website](https://neagents.live/) | [Twitter](https://x.com/NEAGENTS)
+
 # NEA Engine 1.0.0 Open Beta Release
 
 ### Key Updates:
