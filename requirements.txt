@@ -19,3 +19,7 @@ numpy~=1.26.4
 datasets~=3.2.0
 langchain~=0.3.14
 SQLAlchemy~=2.0.36
+aiohttp>=3.8.1
+cryptography>=39.0.0
+pymysql>=1.0.2
+web3>=5.28.0
