@@ -1,24 +1,19 @@
 # coding=utf-8
 # Copyright 2024 HuggingFace Inc.
-#
 
 import os
 import pathlib
 import tempfile
 import uuid
 from io import BytesIO
-import requests
 import numpy as np
+import logging
 
 from transformers.utils import (
     is_soundfile_availble,
     is_torch_available,
     is_vision_available,
 )
-import logging
-
-
-logger = logging.getLogger(__name__)
 
 if is_vision_available():
     from PIL import Image
@@ -35,16 +30,14 @@ else:
 if is_soundfile_availble():
     import soundfile as sf
 
+logger = logging.getLogger(__name__)
+
 
 class AgentType:
     """
-    Abstract class to be reimplemented to define types that can be returned by agents.
-
-    These objects serve three purposes:
-
-    - They behave as they were the type they're meant to be, e.g., a string for text, a PIL.Image for images
-    - They can be stringified: str(object) in order to return a string defining the object
-    - They should be displayed correctly in ipython notebooks/colab/jupyter
+    Abstract base class for agent types (text, image, audio).
+    Behaves as the intended type while providing stringification
+    and notebook-friendly display functionality.
     """
 
     def __init__(self, value):
@@ -55,67 +48,46 @@ class AgentType:
 
     def to_raw(self):
         logger.error(
-            "This is a raw AgentType of unknown type. Display in notebooks and string conversion will be unreliable"
+            "This is a raw AgentType of unknown type. Display and string conversion may be unreliable."
         )
         return self._value
 
-    def to_string(self) -> str:
+    def to_string(self):
         logger.error(
-            "This is a raw AgentType of unknown type. Display in notebooks and string conversion will be unreliable"
+            "This is a raw AgentType of unknown type. Display and string conversion may be unreliable."
         )
         return str(self._value)
 
 
-class AgentText(AgentType, str):
+class AgentText(AgentType):
     """
-    Text type returned by the agent. Behaves as a string.
+    Text type for agents. Behaves as a string.
     """
 
     def __init__(self, value: str):
         if not isinstance(value, str):
             raise TypeError("AgentText must be initialized with a string.")
-        self._value = value
+        super().__init__(value)
 
     def to_raw(self):
-        """
-        Returns the raw underlying value.
-        """
         return self._value
 
     def to_string(self):
-        """
-        Returns the string representation of the value.
-        """
-        return str(self._value)
+        return self._value
 
     def upper(self):
-        """
-        Returns the text in uppercase.
-        """
         return AgentText(self._value.upper())
 
     def lower(self):
-        """
-        Returns the text in lowercase.
-        """
         return AgentText(self._value.lower())
 
     def split(self, sep=None):
-        """
-        Splits the text into a list of substrings.
-        """
         return self._value.split(sep)
 
     def __repr__(self):
-        """
-        Returns a developer-friendly string representation of the object.
-        """
         return f"AgentText({repr(self._value)})"
 
     def __eq__(self, other):
-        """
-        Checks equality with another AgentText or string.
-        """
         if isinstance(other, AgentText):
             return self._value == other._value
         if isinstance(other, str):
@@ -123,17 +95,16 @@ class AgentText(AgentType, str):
         return NotImplemented
 
 
-class AgentImage(AgentType, ImageType):
+class AgentImage(AgentType):
     """
-    Image type returned by the agent. Behaves as a PIL.Image.
+    Image type for agents. Behaves as a PIL.Image.
     """
 
     def __init__(self, value):
-        AgentType.__init__(self, value)
-        ImageType.__init__(self)
+        super().__init__(value)
 
         if not is_vision_available():
-            raise ImportError("PIL must be installed in order to handle images.")
+            raise ImportError("Pillow must be installed to handle images.")
 
         self._path = None
         self._raw = None
@@ -147,161 +118,117 @@ class AgentImage(AgentType, ImageType):
             self._raw = Image.open(BytesIO(value))
         elif isinstance(value, (str, pathlib.Path)):
             self._path = value
-        elif isinstance(value, torch.Tensor):
+        elif is_torch_available() and isinstance(value, torch.Tensor):
             self._tensor = value
-            raise TypeError(
-                f"Unsupported type for {self.__class__.__name__}: {type(value)}"
-            )
-
-    def _ipython_display_(self, include=None, exclude=None):
-        """
-        Displays correctly this type in an ipython notebook (ipython, colab, jupyter, ...)
-        """
-        from IPython.display import Image, display
-
-        display(Image(self.to_string()))
+        else:
+            raise TypeError(f"Unsupported type for AgentImage: {type(value)}")
 
     def to_raw(self):
-        """
-        Returns the "raw" version of that object. In the case of an AgentImage, it is a PIL.Image.
-        """
-        if self._raw is not None:
+        if self._raw:
             return self._raw
 
-        if self._path is not None:
+        if self._path:
             self._raw = Image.open(self._path)
             return self._raw
 
         if self._tensor is not None:
             array = self._tensor.cpu().detach().numpy()
-            return Image.fromarray((255 - array * 255).astype(np.uint8))
+            self._raw = Image.fromarray((255 - array * 255).astype(np.uint8))
+            return self._raw
+
+        raise ValueError("Unable to convert to raw image format.")
 
     def to_string(self):
-        """
-        Returns the stringified version of that object. In the case of an AgentImage, it is a path to the serialized
-        version of the image.
-        """
-        if self._path is not None:
+        if self._path:
             return self._path
 
-        if self._raw is not None:
-            directory = tempfile.mkdtemp()
-            self._path = os.path.join(directory, str(uuid.uuid4()) + ".png")
-            self._raw.save(self._path, format="png")
-            return self._path
+        if self._raw:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                self._path = os.path.join(temp_dir, f"{uuid.uuid4()}.png")
+                self._raw.save(self._path, format="PNG")
+                return self._path
 
-import tempfile
-import uuid
-import os
-import numpy as np
-from PIL import Image
+        raise ValueError("Unable to convert to string representation.")
 
-def save_tensor_as_image(self):
+    def save_tensor_as_image(self):
+        if self._tensor is not None:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                file_path = os.path.join(temp_dir, f"{uuid.uuid4()}.png")
+                array = self._tensor.cpu().detach().numpy()
+                img = Image.fromarray((255 - array * 255).astype(np.uint8))
+                img.save(file_path, format="PNG")
+                return file_path
+        raise ValueError("No tensor data to save as image.")
+
+
+class AgentAudio(AgentType):
     """
-    Converts a tensor to an image, saves it to a temporary file, and returns the file path.
-    """
-    if self._tensor is not None:
-        # Convert tensor to numpy array
-        array = self._tensor.cpu().detach().numpy()
-
-        # Normalize and convert to uint8 image format
-        img = Image.fromarray((255 - array * 255).astype(np.uint8))
-
-        # Create a temporary directory and file path
-        with tempfile.TemporaryDirectory() as temp_dir:
-            file_name = f"{uuid.uuid4()}.png"
-            self._path = os.path.join(temp_dir, file_name)
-
-            # Save the image to the file path
-            img.save(self._path, format="PNG")
-
-            return self._path
-
-    def save(self, output_bytes, format: str = None, **params):
-        """
-        Saves the image to a file.
-        Args:
-            output_bytes (bytes): The output bytes to save the image to.
-            format (str): The format to use for the output image. The format is the same as in PIL.Image.save.
-            **params: Additional parameters to pass to PIL.Image.save.
-        """
-        img = self.to_raw()
-        img.save(output_bytes, format=format, **params)
-
-
-class AgentAudio(AgentType, str):
-    """
-    Audio type returned by the agent.
+    Audio type for agents. Behaves as a torch.Tensor.
     """
 
-    def __init__(self, value, samplerate=16_000):
+    def __init__(self, value, samplerate=16000):
         super().__init__(value)
 
         if not is_soundfile_availble():
-            raise ImportError("soundfile must be installed in order to handle audio.")
+            raise ImportError("SoundFile must be installed to handle audio.")
 
         self._path = None
         self._tensor = None
-
         self.samplerate = samplerate
+
         if isinstance(value, (str, pathlib.Path)):
             self._path = value
         elif is_torch_available() and isinstance(value, torch.Tensor):
             self._tensor = value
-        elif isinstance(value, tuple):
-            self.samplerate = value[0]
-            if isinstance(value[1], np.ndarray):
-                self._tensor = torch.from_numpy(value[1])
-            else:
-                self._tensor = torch.tensor(value[1])
+        elif isinstance(value, tuple) and len(value) == 2:
+            self.samplerate, tensor_data = value
+            self._tensor = (
+                torch.from_numpy(tensor_data)
+                if isinstance(tensor_data, np.ndarray)
+                else torch.tensor(tensor_data)
+            )
         else:
             raise ValueError(f"Unsupported audio type: {type(value)}")
 
     def to_raw(self):
-        """
-        Returns the "raw" version of that object. It is a `torch.Tensor` object.
-        """
         if self._tensor is not None:
             return self._tensor
 
-        if self._path is not None:
-            if "://" in str(self._path):
+        if self._path:
+            if "://" in str(self._path):  # Handle remote URLs
                 response = requests.get(self._path)
                 response.raise_for_status()
                 tensor, self.samplerate = sf.read(BytesIO(response.content))
-            else:
+            else:  # Handle local file paths
                 tensor, self.samplerate = sf.read(self._path)
             self._tensor = torch.tensor(tensor)
             return self._tensor
 
+        raise ValueError("Unable to convert to raw audio format.")
+
     def to_string(self):
-        """
-        Returns the stringified version of that object. In the case of an AgentAudio, it is a path to the serialized
-        version of the audio.
-        """
-        if self._path is not None:
+        if self._path:
             return self._path
 
         if self._tensor is not None:
-            directory = tempfile.mkdtemp()
-            self._path = os.path.join(directory, str(uuid.uuid4()) + ".wav")
-            sf.write(self._path, self._tensor, samplerate=self.samplerate)
-            return self._path
+            with tempfile.TemporaryDirectory() as temp_dir:
+                self._path = os.path.join(temp_dir, f"{uuid.uuid4()}.wav")
+                sf.write(self._path, self._tensor.numpy(), samplerate=self.samplerate)
+                return self._path
+
+        raise ValueError("Unable to convert to string representation.")
 
 
 AGENT_TYPE_MAPPING = {"string": AgentText, "image": AgentImage, "audio": AgentAudio}
 INSTANCE_TYPE_MAPPING = {
     str: AgentText,
     ImageType: AgentImage,
-    torch.Tensor: AgentAudio,
+    torch.Tensor: AgentAudio if is_torch_available() else None,
 }
-
-if is_torch_available():
-    INSTANCE_TYPE_MAPPING[Tensor] = AgentAudio
 
 
 def handle_agent_input_types(*args, **kwargs):
-    args = [(arg.to_raw() if isinstance(arg, AgentType) else arg) for arg in args]
+    args = [arg.to_raw() if isinstance(arg, AgentType) else arg for arg in args]
     kwargs = {
         k: (v.to_raw() if isinstance(v, AgentType) else v) for k, v in kwargs.items()
     }
@@ -310,15 +237,11 @@ def handle_agent_input_types(*args, **kwargs):
 
 def handle_agent_output_types(output, output_type=None):
     if output_type in AGENT_TYPE_MAPPING:
-        # If the class has defined outputs, we can map directly according to the class definition
-        decoded_outputs = AGENT_TYPE_MAPPING[output_type](output)
-        return decoded_outputs
-    else:
-        # If the class does not have defined output, then we map according to the type
-        for _k, _v in INSTANCE_TYPE_MAPPING.items():
-            if isinstance(output, _k):
-                return _v(output)
-        return output
+        return AGENT_TYPE_MAPPING[output_type](output)
+    for _k, _v in INSTANCE_TYPE_MAPPING.items():
+        if isinstance(output, _k):
+            return _v(output)
+    return output
 
 
 __all__ = ["AgentType", "AgentImage", "AgentText", "AgentAudio"]
