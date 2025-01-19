@@ -51,17 +51,54 @@ class E2BExecutor:
             else:
                 console.print(f"Installation of {additional_imports} succeeded!")
 
-        tool_codes = []
-        for tool in tools:
-            validate_tool_attributes(tool.__class__, check_imports=False)
-            tool_code = instance_to_source(tool, base_cls=Tool)
-            tool_code = tool_code.replace("from nea.tools import Tool", "")
-            tool_code += f"\n{tool.name} = {tool.__class__.__name__}()\n"
-            tool_codes.append(tool_code)
+            # Initialize a list to store the code for each tool
+            tool_codes = []
 
-        tool_definition_code = "\n".join(
-            [f"import {module}" for module in BASE_BUILTIN_MODULES]
-        )
+            # Iterate through all the tools and generate their code representations
+            for tool in tools:
+                # Validate the tool's attributes (checking imports is skipped here)
+                validate_tool_attributes(tool.__class__, check_imports=False)
+                
+                # Convert the tool instance to source code, ensuring it inherits from the Tool base class
+                tool_code = instance_to_source(tool, base_cls=Tool)
+                
+                # Remove any unnecessary import statements, specifically Tool import
+                tool_code = tool_code.replace("from nea.tools import Tool", "")
+                
+                # Append the tool initialization line to the code
+                tool_code += f"\n# Initializing {tool.name} tool instance\n"
+                tool_code += f"{tool.name} = {tool.__class__.__name__}()\n"
+                
+                # Add this tool's generated code to the list
+                tool_codes.append(tool_code)
+
+            # Generate the code for importing all the base built-in modules
+            tool_definition_code = "\n".join(
+                [f"import {module}" for module in BASE_BUILTIN_MODULES]
+            )
+
+            # Add a header or a description to clarify the following block
+            tool_definition_code = (
+                "# Importing the necessary built-in modules for tool definitions\n"
+                + tool_definition_code
+                + "\n"
+            )
+
+            # Optionally, you could add comments explaining the structure of the tool codes
+            tool_definition_code += "\n# Now defining the tool instances with the generated code\n"
+
+            # Join all the tool codes into a single string, with a separator between them
+            final_code = "\n\n".join(tool_codes) + "\n"
+
+            # Combine the module imports and tool definitions into one final output
+            final_code = tool_definition_code + final_code
+
+            # Optionally print or return the final generated code
+            print(final_code)
+
+            # Returning the final code can be used later
+            return final_code
+
         tool_definition_code += textwrap.dedent("""
         class Tool:
             def __call__(self, *args, **kwargs):
