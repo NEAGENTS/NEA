@@ -47,11 +47,25 @@ class Monitor:
             f"[Step {len(self.step_durations)-1}: Duration {step_duration:.2f} seconds"
         )
 
-        if getattr(self.tracked_model, "last_input_token_count", None) is not None:
-            self.total_input_token_count += self.tracked_model.last_input_token_count
-            self.total_output_token_count += self.tracked_model.last_output_token_count
-            console_outputs += f"| Input tokens: {self.total_input_token_count:,} | Output tokens: {self.total_output_token_count:,}"
-        console_outputs += "]"
+    def update_token_counts(self, console):
+        # Check if the tracked model has token count attributes
+        last_input_token_count = getattr(self.tracked_model, "last_input_token_count", None)
+        last_output_token_count = getattr(self.tracked_model, "last_output_token_count", None)
+
+        if last_input_token_count is not None and last_output_token_count is not None:
+            self.total_input_token_count += last_input_token_count
+            self.total_output_token_count += last_output_token_count
+
+            # Create the token count string in a readable format
+            token_message = (
+                f"| Input tokens: {self.total_input_token_count:,} "
+                f"| Output tokens: {self.total_output_token_count:,} |"
+            )
+        else:
+            token_message = ""
+
+        # Display the message with the token counts
+        console_outputs = f"{token_message}]"
         console.print(Text(console_outputs, style="dim"))
 
 
