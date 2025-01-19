@@ -51,6 +51,12 @@ def handle_client(conn, addr):
             if code.upper() == "NEA:INFO":
                 # Provide NEA information
                 output = f"{NEA_NAME}\nVersion: {NEA_VERSION}\nStatus: Online\n"
+            elif code.upper() == "NEA:SHUTDOWN":
+                # Shutdown command
+                output = "Shutting down NEA server...\n"
+                conn.sendall(output.encode('utf-8'))
+                print(output.strip())
+                sys.exit(0)
             else:
                 # Execute user-provided code
                 output = execute_code(code)
@@ -61,6 +67,7 @@ def handle_client(conn, addr):
     finally:
         conn.close()
         print(f"Connection with {addr} closed.")
+
 
 
 def start_server(host='0.0.0.0', port=65432):
