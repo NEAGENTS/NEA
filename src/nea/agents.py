@@ -99,11 +99,20 @@ def format_prompt_with_tools(toolbox: Toolbox, prompt_template: str, tool_descri
 def show_agents_descriptions(managed_agents: Dict):
     managed_agents_descriptions = """
 You can also give requests to team members.
-Calling a team member works the same as for calling a tool: simply, the only argument you can give in the call is 'request', a long string explaning your request.
+Calling a team member works the same as calling a tool: the only argument you can give in the call is 'request', a long string explaining your request.
 Given that this team member is a real human, you should be very verbose in your request.
-Here is a list of the team members that you can call:"""
-    for agent in managed_agents.values():
-        managed_agents_descriptions += f"\n- {agent.name}: {agent.description}"
+
+Here is a list of the team members you can call:"""
+
+    # If there are no managed agents, provide a suitable message
+    if not managed_agents:
+        managed_agents_descriptions += "\nNo team members are currently available."
+    else:
+        # Iterate through each agent and add their description
+        for agent in managed_agents.values():
+            agent_description = f"\n- {agent.name}: {agent.description}"
+            managed_agents_descriptions += agent_description
+
     return managed_agents_descriptions
 
 
