@@ -984,48 +984,84 @@ class ManagedAgent:
     def __init__(
         self,
         agent,
-        name,
-        description,
+        name: str,
+        description: str,
         additional_prompting: Optional[str] = None,
         provide_run_summary: bool = True,
         managed_agent_prompt: Optional[str] = None,
     ):
+        """
+        A class for managing agent tasks with optional prompts and summaries.
+        
+        Args:
+            agent: The agent instance to manage.
+            name: Name of the managed agent.
+            description: A short description of the agent's purpose.
+            additional_prompting: Optional string to add more context to tasks.
+            provide_run_summary: Whether to include a run summary in the output.
+            managed_agent_prompt: Optional custom prompt for task generation.
+        """
         self.agent = agent
         self.name = name
         self.description = description
-        self.additional_prompting = additional_prompting
+        self.additional_prompting = additional_prompting or ""
         self.provide_run_summary = provide_run_summary
-        self.managed_agent_prompt = (
-            managed_agent_prompt if managed_agent_prompt else MANAGED_AGENT_PROMPT
-        )
+        self.managed_agent_prompt = managed_agent_prompt or MANAGED_AGENT_PROMPT
 
-    def write_full_task(self, task):
-        """Adds additional prompting for the managed agent, like 'add more detail in your answer'."""
+    def _compose_full_task(self, task: str) -> str:
+        """
+        Creates the full task prompt with the agent's name and optional additional prompting.
+        
+        Args:
+            task: The original task description.
+        
+        Returns:
+            The fully formatted task prompt.
+        """
         full_task = self.managed_agent_prompt.format(name=self.name, task=task)
         if self.additional_prompting:
-            full_task = full_task.replace(
-                "\n{{additional_prompting}}", self.additional_prompting
-            ).strip()
+            full_task = full_task.replace("\n{{additional_prompting}}", self.additional_prompting.strip())
         else:
-            full_task = full_task.replace("\n{{additional_prompting}}", "").strip()
-        return full_task
+            full_task = full_task.replace("\n{{additional_prompting}}", "")
+        return full_task.strip()
 
-    def __call__(self, request, **kwargs):
-        full_task = self.write_full_task(request)
+    def _generate_summary(self, output: str) -> str:
+        """
+        Generates a detailed summary of the agent's work.
+
+        Args:
+            output: The agent's output for the task.
+
+        Returns:
+            A formatted string containing the agent's output and summary.
+        """
+        summary_lines = [
+            f"Here is the final answer from your managed agent '{self.name}':",
+            str(output),
+            f"\nFor more detail, find below a summary of this agent's work:",
+            f"SUMMARY OF WORK FROM AGENT '{self.name}':",
+        ]
+        for message in self.agent.write_inner_memory_from_logs(summary_mode=True):
+            content = truncate_content(str(message["content"]))
+            summary_lines.append(f"{content}\n---")
+        summary_lines.append(f"END OF SUMMARY OF WORK FROM AGENT '{self.name}'.")
+        return "\n".join(summary_lines)
+
+    def __call__(self, request: str, **kwargs) -> str:
+        """
+        Executes the agent with the given request and optionally includes a summary.
+
+        Args:
+            request: The task description to send to the agent.
+            **kwargs: Additional arguments to pass to the agent.
+
+        Returns:
+            The agent's output, optionally with a detailed summary.
+        """
+        full_task = self._compose_full_task(request)
         output = self.agent.run(full_task, **kwargs)
-        if self.provide_run_summary:
-            answer = (
-                f"Here is the final answer from your managed agent '{self.name}':\n"
-            )
-            answer += str(output)
-            answer += f"\n\nFor more detail, find below a summary of this agent's work:\nSUMMARY OF WORK FROM AGENT '{self.name}':\n"
-            for message in self.agent.write_inner_memory_from_logs(summary_mode=True):
-                content = message["content"]
-                answer += "\n" + truncate_content(str(content)) + "\n---"
-            answer += f"\nEND OF SUMMARY OF WORK FROM AGENT '{self.name}'."
-            return answer
-        else:
-            return output
+        return self._generate_summary(output) if self.provide_run_summary else output
+
 
 
 __all__ = [
