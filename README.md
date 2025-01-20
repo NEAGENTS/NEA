@@ -29,8 +29,7 @@ This project operates through a single, official smart contract address to maint
 
 - **DEX**: [NEA on Dexscreener](https://dexscreener.com/solana/)  
 - **Website**: [NEA LIVE](https://neagents.live/)  
-- **Twitter**: [@NEAGENTS](https://x.com/neagents)  
-- **Telegram**: [NEA Community](https://t.me/)
+- **Twitter**: [@NEAGENTS](https://x.com/neagents)
 
 All development and ongoing maintenance are funded through the creator’s wallet associated with the NEA token. This ensures that funds are allocated directly toward furthering the NEA ecosystem's growth and sustainability.
 
