@@ -115,33 +115,63 @@ class MethodChecker(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-def validate_tool_attributes(cls, check_imports: bool = True) -> None:
-    """
-    Validates that a Tool class follows the proper patterns:
-    - __init__ should take no arguments (args chosen at init are not traceable).
-    - Class attributes should be simple types (strings, dicts).
-    - Methods should only use defined imports and self-contained logic.
+import ast
+import inspect
+import textwrap
+from typing import Type
 
-    Raises all errors encountered, otherwise returns None.
+def validate_tool_attributes(cls: Type, check_imports: bool = True) -> None:
+    """
+    Validates that a Tool class adheres to expected conventions:
+    - The `__init__` method should not accept arguments other than `self`.
+    - Class attributes should be of simple types (e.g., strings, dictionaries).
+    - Methods should use only defined imports and self-contained logic.
+
+    Raises:
+        ValueError: If the source code does not define a class.
+        TypeError: If any validation checks fail, detailing the issues.
+
+    Parameters:
+        cls (Type): The Tool class to validate.
+        check_imports (bool): Whether to validate that methods use only defined imports. (Optional; default is True.)
     """
     errors = []
 
-    # Get the source code of the class and parse it to an AST
-    source = textwrap.dedent(inspect.getsource(cls))
-    tree = ast.parse(source)
+    # Get and parse the source code of the class
+    try:
+        source = textwrap.dedent(inspect.getsource(cls))
+        tree = ast.parse(source)
+    except Exception as e:
+        raise ValueError(f"Failed to parse the source of class {cls.__name__}: {e}")
 
     if not isinstance(tree.body[0], ast.ClassDef):
-        raise ValueError("Source code must define a class")
+        raise ValueError(f"Source code must define a class. Provided source defines: {type(tree.body[0]).__name__}")
 
-    # Check that __init__ method takes no arguments
-    if cls.__init__.__qualname__ != "Tool.__init__":
-        sig = inspect.signature(cls.__init__)
-        non_self_params = [arg_name for arg_name in sig.parameters if arg_name != "self"]
+    # Validate the __init__ method
+    init_method = getattr(cls, "__init__", None)
+    if init_method:
+        sig = inspect.signature(init_method)
+        non_self_params = [name for name in sig.parameters if name != "self"]
         if non_self_params:
             errors.append(
-                f"Tool class '__init__' method has unexpected arguments: {non_self_params}. "
-                "Ensure no arguments are specified, as values should be hardcoded."
+                f"`__init__` method of '{cls.__name__}' has unexpected parameters: {non_self_params}. "
+                "Ensure it takes no arguments other than 'self', as values should be hardcoded."
             )
+
+    # (Optional) Validate that methods use only defined imports
+    if check_imports:
+        # Implementation for checking imports can be added here
+        pass
+
+    # Handle collected errors
+    if errors:
+        raise TypeError(f"Validation errors in class '{cls.__name__}':\n" + "\n".join(errors))
+
+    # Example usage:
+    # class Tool:
+    #     def __init__(self):
+    #         pass
+    # validate_tool_attributes(Tool)
 
     class_node = tree.body[0]
 
