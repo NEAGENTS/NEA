@@ -14,15 +14,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 __version__ = "1.1.0.dev0"
 
 from typing import TYPE_CHECKING
-
 from transformers.utils import _LazyModule
 from transformers.utils.import_utils import define_import_structure
 
-
 if TYPE_CHECKING:
+    # Import all modules directly during type checking or IDE code introspection.
     from .agents import *
     from .default_tools import *
     from .gradio_ui import *
@@ -35,13 +35,16 @@ if TYPE_CHECKING:
     from .types import *
     from .utils import *
 
-
 else:
+    # Lazy loading for runtime performance optimization.
     import sys
-
-    _file = globals()["__file__"]
+    _file = globals().get("__file__", None)
     import_structure = define_import_structure(_file)
+
+    # Add the version key explicitly to the import structure.
     import_structure[""] = {"__version__": __version__}
+
+    # Assign the `_LazyModule` instance to this module's namespace.
     sys.modules[__name__] = _LazyModule(
         __name__,
         _file,
