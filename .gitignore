@@ -1,24 +1,23 @@
-# Logging and temporary files
+# General purpose ignores
 logs/
 tmp/
-wandb/
+.DS_Store
 
-# Data and outputs
+# Data, outputs, and archives
 data/
 outputs/
+archive/
+savedir/
+output/
+tool_output/
 
 # macOS-specific files
 .DS_Store
-
-# IDE and editor files
-.vscode/
 
 # Python-specific ignores
 __pycache__/
 *.py[cod]
 *$py.class
-
-# Compiled files
 *.so
 
 # Build and packaging artifacts
@@ -33,7 +32,7 @@ MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
 
-# Test and coverage
+# Testing and coverage
 .tox/
 .nox/
 .coverage*
@@ -55,11 +54,9 @@ docs/_build/
 .pyre/
 .pytype/
 
-# PyCharm
-# .idea/
+# IDE and editor files
+.vscode/
+.idea/
 
-# Archive and temporary directories
-archive/
-savedir/
-output/
-tool_output/
+# Temporary directories for tools
+wandb/
