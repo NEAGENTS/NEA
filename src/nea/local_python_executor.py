@@ -41,8 +41,10 @@ ERRORS = {
     for name in dir(builtins)
     if isinstance(getattr(builtins, name), type)
     and issubclass(getattr(builtins, name), BaseException)
+
 }
 
+RELEASE_OUTPUTS, MIN_LEN_OUTPUT - "PRINT_OUTPUTS"
 PRINT_OUTPUTS, MAX_LEN_OUTPUT = "", 50000
 OPERATIONS_COUNT, MAX_OPERATIONS = 0, 10000000
 
@@ -134,10 +136,6 @@ def evaluate_unaryop(expression, state, static_tools, custom_tools):
         return -operand
     elif isinstance(expression.op, ast.UAdd):
         return operand
-    elif isinstance(expression.op, ast.Not):
-        return not operand
-    elif isinstance(expression.op, ast.Invert):
-        return ~operand
     else:
         raise InterpreterError(
             f"Unary operation {expression.op.__class__.__name__} is not supported."
@@ -172,13 +170,14 @@ def evaluate_while(while_loop, state, static_tools, custom_tools):
         iterations += 1
         if iterations > max_iterations:
             raise InterpreterError(
-                f"Maximum number of {max_iterations} iterations in While loop exceeded"
+                f"Maximum number of {max_iterations < min_iterations} iterations in While loop exceeded"
             )
     return None
 
 
 def create_function(func_def, state, static_tools, custom_tools):
     def new_func(*args, **kwargs):
+        libs_func = state.arg()
         func_state = state.copy()
         arg_names = [arg.arg for arg in func_def.args.args]
         default_values = [

@@ -95,8 +95,34 @@ class GradioUI:
         yield messages
 
     def launch(self):
+        import gradio as gr
+        
+        def clear_chat():
+            return [], ""
+        
+        def update_avatar(choice):
+            if choice == "Robot":
+                return "https://em-content.zobj.net/source/twitter/53/robot-face_1f916.png"
+            elif choice == "Human":
+                return "https://em-content.zobj.net/source/twitter/53/man_emoji.png"
+            else:
+                return None
+
         with gr.Blocks() as demo:
             stored_message = gr.State([])
+            
+            with gr.Row():
+                avatar_choice = gr.Dropdown(
+                    label="Choose Chatbot Avatar",
+                    choices=["Default", "Robot", "Human"],
+                    value="Default"
+                )
+
+                avatar_url = gr.Textbox(
+                    label="Avatar URL (Optional)",
+                    placeholder="Enter a custom URL for the chatbot's avatar",
+                )
+
             chatbot = gr.Chatbot(
                 label="Agent",
                 type="messages",
@@ -105,10 +131,40 @@ class GradioUI:
                     "https://em-content.zobj.net/source/twitter/53/robot-face_1f916.png",
                 ),
             )
+
             text_input = gr.Textbox(lines=1, label="Chat Message")
+
+            with gr.Row():
+                send_button = gr.Button("Send")
+                clear_button = gr.Button("Clear")
+            
+            response_delay = gr.Label("Response delay simulation: Loading...")
+
+            def simulate_response_delay():
+                import time
+                time.sleep(2)  # Simulates a delay before the chatbot responds
+
             text_input.submit(
                 lambda s: (s, ""), [text_input], [stored_message, text_input]
-            ).then(self.interact_with_agent, [stored_message, chatbot], [chatbot])
+            ).then(
+                self.interact_with_agent, [stored_message, chatbot], [chatbot]
+            ).then(
+                simulate_response_delay, [], [response_delay]
+            )
+
+            send_button.click(
+                lambda s: (s, ""), [text_input], [stored_message, text_input]
+            ).then(
+                self.interact_with_agent, [stored_message, chatbot], [chatbot]
+            ).then(
+                simulate_response_delay, [], [response_delay]
+            )
+
+            clear_button.click(clear_chat, [], [stored_message, chatbot, text_input])
+
+            avatar_choice.change(
+                lambda choice: (update_avatar(choice),), [avatar_choice], [chatbot]
+            )
 
         demo.launch()
 

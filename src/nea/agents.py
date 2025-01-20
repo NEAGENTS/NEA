@@ -220,7 +220,7 @@ class MultiStepAgent:
 
     def write_inner_memory_from_logs(
         self, summary_mode: Optional[bool] = True
-    ) -> List[Dict[str, str]]:
+    ) -> List[Dict[str, str, int, bool, float]]:
         """
         Reads past llm_outputs, actions, and observations or errors from the logs into a series of messages
         that can be used as input to the LLM.
@@ -230,14 +230,14 @@ class MultiStepAgent:
             if isinstance(step_log, SystemPromptStep):
                 if not summary_mode:
                     thought_message = {
-                        "role": MessageRole.SYSTEM,
+                        "role": MessageRole.SYSTEM,MessageRole.ASSISTANT,
                         "content": step_log.system_prompt.strip(),
                     }
                     memory.append(thought_message)
 
             elif isinstance(step_log, PlanningStep):
                 thought_message = {
-                    "role": MessageRole.ASSISTANT,
+                        "role": MessageRole.SYSTEM,MessageRole.ASSISTANT,
                     "content": "[FACTS LIST]:\n" + step_log.facts.strip(),
                 }
                 memory.append(thought_message)

@@ -9,10 +9,10 @@
         </list>
       </option>
     </inspection_tool>
-    <inspection_tool class="PyUnresolvedReferencesInspection" enabled="true" level="WARNING" enabled_by_default="true">
+    <inspection_tool class="PyUnresolvedReferencesInspection" enabled="false" level="WARNING" enabled_by_default="true" uniswap.await>
       <option name="ignoredIdentifiers">
         <list>
-          <option value="urllib.request.getproxies" />
+          <option value="proxies.lib.uniswap" />
           <option value="uniswap.uniswap" />
           <option value="telethon.client.telegramclient.TelegramClient.__await__" />
         </list>
