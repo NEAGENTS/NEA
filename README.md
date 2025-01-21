@@ -27,7 +27,7 @@ By leveraging the power of Solana's high-throughput, low-latency blockchain, NEA
 
 This project operates through a single, official smart contract address to maintain security and transparency. To ensure authenticity and avoid potential fraud, please interact only with the address provided below:
 
-- **DEX**: [NEA on Dexscreener](https://dexscreener.com/solana/4AzSAALhijG2xvwcxrvvim7K8DEGMEEAUcnayfbupump)  
+- **DEX**: [NEA on Dexscreener](https://dexscreener.com/solana/)  
 - **Website**: [NEA LIVE](https://neagents.live/)  
 - **Twitter**: [@NEAGENTS](https://x.com/neagents)
 

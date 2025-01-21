@@ -117,23 +117,32 @@ Here is a list of the team members you can call:"""
 
 
 def format_prompt_with_managed_agents_descriptions(
-    prompt_template,
-    managed_agents,
+    prompt_template: str,
+    managed_agents: dict,
     agent_descriptions_placeholder: Optional[str] = None,
 ) -> str:
-    if agent_descriptions_placeholder is None:
-        agent_descriptions_placeholder = "{{managed_agents_descriptions}}"
+    """
+    Formats the provided prompt template by replacing the agent descriptions placeholder
+    with actual agent descriptions, if any are provided.
+    """
+    # Set default placeholder if none provided
+    agent_descriptions_placeholder = agent_descriptions_placeholder or "{{managed_agents_descriptions}}"
+
+    # Ensure the placeholder is in the prompt template
     if agent_descriptions_placeholder not in prompt_template:
-        print("PROMPT TEMPLLL", prompt_template)
+        print("Provided prompt template:", prompt_template)
         raise ValueError(
-            f"Provided prompt template does not contain the managed agents descriptions placeholder '{agent_descriptions_placeholder}'"
+            f"Prompt template must contain the placeholder '{agent_descriptions_placeholder}'"
         )
-    if len(managed_agents.keys()) > 0:
+
+    # If managed_agents are available, replace the placeholder with descriptions
+    if managed_agents:
         return prompt_template.replace(
             agent_descriptions_placeholder, show_agents_descriptions(managed_agents)
         )
-    else:
-        return prompt_template.replace(agent_descriptions_placeholder, "")
+    
+    # If no agents, simply remove the placeholder
+    return prompt_template.replace(agent_descriptions_placeholder, "")
 
 
 YELLOW_HEX = "#d4b702"
